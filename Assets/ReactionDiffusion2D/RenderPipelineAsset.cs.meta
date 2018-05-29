@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 78f80a063597cfd4281edd315f0d7732
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - ReactionDiffusionShader: {instanceID: 0}
+  - PresentShader: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
