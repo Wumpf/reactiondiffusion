@@ -26,7 +26,7 @@ namespace ReactionDiffusion2D
         private readonly Material reactionDiffusionInitMaterial;
         private readonly Material presentMaterial;
 
-        public int NumIterationsPerFrame = 20;
+        public int NumIterationsPerFrame = 200;
 
         public RenderPipeline(RenderPipelineAsset asset)
         {
