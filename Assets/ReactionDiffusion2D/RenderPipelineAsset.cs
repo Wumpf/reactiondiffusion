@@ -13,6 +13,7 @@ namespace ReactionDiffusion2D
         public Shader ReactionDiffusionIterationShader;
         public Shader ReactionDiffusionInitShader;
         public Shader PresentShader;
+        public int NumIterationsPerFrame = 200;
 
         protected override IRenderPipeline InternalCreatePipeline() => new RenderPipeline(this);
     }
@@ -26,13 +27,14 @@ namespace ReactionDiffusion2D
         private readonly Material reactionDiffusionInitMaterial;
         private readonly Material presentMaterial;
 
-        public int NumIterationsPerFrame = 200;
+        public RenderPipelineAsset asset;
 
         public RenderPipeline(RenderPipelineAsset asset)
         {
             reactionDiffusionIterationMaterial = new Material(asset.ReactionDiffusionIterationShader);
             reactionDiffusionInitMaterial = new Material(asset.ReactionDiffusionInitShader);
             presentMaterial = new Material(asset.PresentShader);
+            this.asset = asset;
         }
 
         private void CreateRenderTextures(Camera camera)
@@ -66,11 +68,11 @@ namespace ReactionDiffusion2D
                 cmd.Blit(renderTexture[backRenderTextureIdx], renderTexture[frontRenderTextureIdx], reactionDiffusionInitMaterial);
             }
 
-            reactionDiffusionIterationMaterial.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
+            reactionDiffusionIterationMaterial.SetFloat("_NumIterationsPerFrame", asset.NumIterationsPerFrame);
 
             if (!UnityEditor.EditorApplication.isPaused)
             {
-                for (int i = 0; i < NumIterationsPerFrame; ++i)
+                for (int i = 0; i < asset.NumIterationsPerFrame; ++i)
                 {
                     Swap(ref frontRenderTextureIdx, ref backRenderTextureIdx);
                     cmd.Blit(renderTexture[backRenderTextureIdx], renderTexture[frontRenderTextureIdx], reactionDiffusionIterationMaterial);
