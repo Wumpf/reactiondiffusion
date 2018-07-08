@@ -15,23 +15,21 @@
 		Pass
 		{
 			CGPROGRAM
-			#include "UnityCustomRenderTexture.cginc"
-
-			#pragma vertex CustomRenderTextureVertexShader
+			#include "UnityCG.cginc"
+			#include "VolumeSlice.cginc"
+			#pragma vertex vert_volumeSlice
 			#pragma fragment frag
 			
-			sampler2D _MainTex;
+			sampler3D _MainTex;
 			float4 _MainTex_TexelSize;
 			float2 _DiffusionRate;
 			float _KillRate;
 			float _FeedRate;
 			float _Speed;
 
-			float rand(float n) { return frac(sin(n) * 43758.5453123); }
-
-			float4 frag(v2f_customrendertexture In) : COLOR
+			float4 frag(v2f_volumeSlice In) : COLOR
 			{
-				return float4(rand(In.globalTexcoord.x + In.globalTexcoord.y * In.globalTexcoord.x + In.globalTexcoord.z * In.globalTexcoord.y * In.globalTexcoord.x), 0.0f, 0.0, 1.0f);
+				return tex3D(_MainTex, In.texcoord);
 			}
 			ENDCG
 		}

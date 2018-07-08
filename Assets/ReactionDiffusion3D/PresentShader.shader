@@ -1,10 +1,4 @@
-﻿// Upgrade NOTE: commented out 'float3 _WorldSpaceCameraPos', a built-in variable
-
-// Upgrade NOTE: commented out 'float3 _WorldSpaceCameraPos', a built-in variable
-
-// Upgrade NOTE: commented out 'float3 _WorldSpaceCameraPos', a built-in variable
-
-Shader "ReactionDiffusion3D/Present"
+﻿Shader "ReactionDiffusion3D/Present"
 {
 	Properties
 	{
@@ -12,7 +6,7 @@ Shader "ReactionDiffusion3D/Present"
 	}
 	SubShader
 	{
-		ZWrite Off ZTest Always
+		//ZWrite Off ZTest Always
 
 		Pass
 		{
@@ -23,8 +17,6 @@ Shader "ReactionDiffusion3D/Present"
 			
 			sampler3D _ReactionDiffusionVolume;
 			float4 _ReactionDiffusionVolume_TexelSize;
-
-			
 
 			struct v2f
 			{
@@ -81,9 +73,7 @@ Shader "ReactionDiffusion3D/Present"
 				// Error: Didn't have enough steps!
 				return float4(1.0f, 0.0f, 1.0f, 0.0f);
 
-
 				//clip(value*accumulatedOpacity - 0.001f);
-
 				//return float4(In.volumePos, 0.0f);
 				//return float4(SampleVolume().xy, 0.0f, 1.0f);
 			}
