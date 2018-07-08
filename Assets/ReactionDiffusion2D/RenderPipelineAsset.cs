@@ -66,6 +66,8 @@ namespace ReactionDiffusion2D
                 cmd.Blit(renderTexture[backRenderTextureIdx], renderTexture[frontRenderTextureIdx], reactionDiffusionInitMaterial);
             }
 
+            reactionDiffusionIterationMaterial.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
+
             if (!UnityEditor.EditorApplication.isPaused)
             {
                 for (int i = 0; i < NumIterationsPerFrame; ++i)

@@ -6,7 +6,7 @@
 		_DiffusionRate ("DiffusionRate", Vector) = (1.0, 0.5, 0.0, 0.0)
 		_KillRate ("KillRate", Float) = 0.062
 		_FeedRate ("FeedRate", Float) = 0.0545
-		_Speed ("Speed", Float) = 10.0
+		_Speed ("Speed", Float) = 4000.0
 	}
 	SubShader
 	{
@@ -25,6 +25,7 @@
 			float _KillRate;
 			float _FeedRate;
 			float _Speed;
+			float _NumIterationsPerFrame;
 
 
 			float2 computeLaplacian(float2 uv, float2 current)
@@ -58,7 +59,7 @@
 				float reactionV = u * v * v - (_FeedRate + _KillRate) * v;
 
 				// Apply using simple forward Euler.
-				float2 newValues = current + (diffusion + float2(reactionU, reactionV)) * _Speed * unity_DeltaTime.x;
+				float2 newValues = current + (diffusion + float2(reactionU, reactionV)) * (_Speed * unity_DeltaTime.x / _NumIterationsPerFrame);
 
 				return float4(newValues, 0.0, 1.0);
 			}
