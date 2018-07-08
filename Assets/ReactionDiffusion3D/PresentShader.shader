@@ -53,8 +53,8 @@
 				for (int i = 0; i < 128; ++i)
 				{
 					float2 sampledVolume = SampleVolume(pos);
-					float sampleOpacity = sampledVolume.x * 1.8f;
-					float sampleValue = 1.0f;
+					float sampleOpacity = sampledVolume.y * 1.8f; // dot(sampledVolume, sampledVolume) * 4.0f;
+					float sampleValue = sampledVolume.y; //1.0f;
 
 					sampleOpacity *= stepSize;
 
@@ -66,7 +66,8 @@
 					if (accumulatedOpacity > 0.99f ||
 						pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f)
 					{
-						return float4(value*accumulatedOpacity, value*accumulatedOpacity, value*accumulatedOpacity, 1.0f);
+						return float4(value.xxx*accumulatedOpacity * 10.0f, 1.0f);
+						//return float4(value*accumulatedOpacity, 0.0f, 1.0f);
 					}
 				}
 
