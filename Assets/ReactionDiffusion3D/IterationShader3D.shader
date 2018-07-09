@@ -32,15 +32,15 @@
 
 			float2 computeLaplacian(float3 uv, float2 current)
 			{
-				float3 texelSize = _MainTex_TexelSize.xyy; // _TexelSioze doesn't work quite for 3d textures.
+				float3 texelSize = _MainTex_TexelSize.xyy; // _TexelSize doesn't work quite for 3d textures.
 
 				return (tex3D(_MainTex, uv + float3(texelSize.x, 0.0f, 0.0f)).xy +
 						tex3D(_MainTex, uv - float3(texelSize.x, 0.0f, 0.0f)).xy +
 						tex3D(_MainTex, uv + float3(0.0f, texelSize.y, 0.0f)).xy +
 						tex3D(_MainTex, uv - float3(0.0f, texelSize.y, 0.0f)).xy +
 						tex3D(_MainTex, uv + float3(0.0f, 0.0f, texelSize.z)).xy +
-						tex3D(_MainTex, uv - float3(0.0f, 0.0f, texelSize.z)).xy) / 6.0f
-					- current;
+						tex3D(_MainTex, uv - float3(0.0f, 0.0f, texelSize.z)).xy)
+					- current * 6.0f;
 			}
 
 			float4 frag(v2f_volumeSlice In) : COLOR

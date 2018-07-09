@@ -15,7 +15,7 @@ public class ReactionDiffusionCube : MonoBehaviour
 
     // Must be even! Todo: Enforce, Expose
     [Range(2, 200)]
-    private int NumIterationsPerFrame = 30;
+    private int NumIterationsPerFrame = 15;
 
     private readonly RenderTexture[] renderTexture = new RenderTexture[] {null, null};
     private MaterialPropertyBlock[,] materialPerSliceProperties;
