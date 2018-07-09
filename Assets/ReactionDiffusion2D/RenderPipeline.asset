@@ -16,4 +16,4 @@ MonoBehaviour:
   ReactionDiffusionInitShader: {fileID: 4800000, guid: dacd5dc7b94db2a43bccf54bca83ebf8,
     type: 3}
   PresentShader: {fileID: 4800000, guid: e7d28165ff77a634fae182c08ec6dd18, type: 3}
-  NumIterationsPerFrame: 200
+  NumIterationsPerFrame: 50

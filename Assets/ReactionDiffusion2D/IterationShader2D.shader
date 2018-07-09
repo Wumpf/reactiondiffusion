@@ -3,10 +3,10 @@
 	Properties
 	{
 		_MainTex ("Texture", 2D) = "white" {}
-		_DiffusionRate ("DiffusionRate", Vector) = (1.0, 0.5, 0.0, 0.0)
+		_DiffusionRate ("DiffusionRate", Vector) = (0.1, 0.05, 0.0, 0.0)
 		_KillRate ("KillRate", Float) = 0.06
 		_FeedRate ("FeedRate", Float) = 0.037
-		_Speed ("Speed", Float) = 400.0
+		_Speed ("Speed", Float) = 200.0
 	}
 	SubShader
 	{
@@ -31,18 +31,26 @@
 
 			float2 computeLaplacian(float2 uv, float2 current)
 			{
-				// with diagonals.
-				return (tex2D(_MainTex, uv + float2(_MainTex_TexelSize.x, 0.0)).xy +
-						tex2D(_MainTex, uv - float2(_MainTex_TexelSize.x, 0.0)).xy +
-						tex2D(_MainTex, uv + float2(0.0, _MainTex_TexelSize.y)).xy +
-						tex2D(_MainTex, uv - float2(0.0, _MainTex_TexelSize.y)).xy) * 0.2f
-					    +
-					   (tex2D(_MainTex, uv + _MainTex_TexelSize).xy +
-						tex2D(_MainTex, uv - _MainTex_TexelSize).xy +
-						tex2D(_MainTex, uv + float2(_MainTex_TexelSize.x, -_MainTex_TexelSize.y)).xy +
-						tex2D(_MainTex, uv - float2(_MainTex_TexelSize.x, -_MainTex_TexelSize.y)).xy) * 0.05f
-						-
-						current;
+				// 2D Laplace operator with Diagonals
+				//return (tex2D(_MainTex, uv + float2(_MainTex_TexelSize.x, 0.0)).xy +
+				//		tex2D(_MainTex, uv - float2(_MainTex_TexelSize.x, 0.0)).xy +
+				//		tex2D(_MainTex, uv + float2(0.0, _MainTex_TexelSize.y)).xy +
+				//		tex2D(_MainTex, uv - float2(0.0, _MainTex_TexelSize.y)).xy) * 0.5f
+				//	    +
+				//	   (tex2D(_MainTex, uv + _MainTex_TexelSize).xy +
+				//		tex2D(_MainTex, uv - _MainTex_TexelSize).xy +
+				//		tex2D(_MainTex, uv + float2(_MainTex_TexelSize.x, -_MainTex_TexelSize.y)).xy +
+				//		tex2D(_MainTex, uv - float2(_MainTex_TexelSize.x, -_MainTex_TexelSize.y)).xy) * 0.25f
+				//		-
+				//		current * 3.0f;
+
+				// Being clever with linear filtering. This is equivalent to the above!
+				float2 halfTexelSize = _MainTex_TexelSize.xy * 0.5f;
+				return  tex2D(_MainTex, uv + halfTexelSize).xy +
+						tex2D(_MainTex, uv + float2(halfTexelSize.x, -halfTexelSize.y)).xy +
+						tex2D(_MainTex, uv + float2(-halfTexelSize.x, halfTexelSize.y)).xy +
+						tex2D(_MainTex, uv - halfTexelSize).xy
+						- current * 4.0f;
 			}
 
 			float4 frag(v2f_img In) : COLOR
