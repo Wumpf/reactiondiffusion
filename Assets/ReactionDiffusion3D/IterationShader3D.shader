@@ -34,13 +34,28 @@
 			{
 				float3 texelSize = _MainTex_TexelSize.xyy; // _TexelSize doesn't work quite for 3d textures.
 
-				return (tex3D(_MainTex, uv + float3(texelSize.x, 0.0f, 0.0f)).xy +
+		/*		return (tex3D(_MainTex, uv + float3(texelSize.x, 0.0f, 0.0f)).xy +
 						tex3D(_MainTex, uv - float3(texelSize.x, 0.0f, 0.0f)).xy +
 						tex3D(_MainTex, uv + float3(0.0f, texelSize.y, 0.0f)).xy +
 						tex3D(_MainTex, uv - float3(0.0f, texelSize.y, 0.0f)).xy +
 						tex3D(_MainTex, uv + float3(0.0f, 0.0f, texelSize.z)).xy +
 						tex3D(_MainTex, uv - float3(0.0f, 0.0f, texelSize.z)).xy)
-					- current * 6.0f;
+					- current * 6.0f;*/
+
+				float3 texelSizeHalf = texelSize * 0.5f;
+
+				// Sampling on the corners of the texel cube. Means that each sample samples 8 neighbor texels each with a weight of 0.25
+				// This results in 27 sampled texels, four different kinds with different weights.
+				// Leading to a 3d laplace filter with diagonals.
+				return (tex3D(_MainTex, uv + float3(texelSizeHalf.x, texelSizeHalf.y, texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(-texelSizeHalf.x, texelSizeHalf.y, texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(-texelSizeHalf.x, -texelSizeHalf.y, texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(texelSizeHalf.x, -texelSizeHalf.y, texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(texelSizeHalf.x, texelSizeHalf.y, -texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(-texelSizeHalf.x, texelSizeHalf.y, -texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(-texelSizeHalf.x, -texelSizeHalf.y, -texelSizeHalf.z)).xy +
+					tex3D(_MainTex, uv + float3(texelSizeHalf.x, -texelSizeHalf.y, -texelSizeHalf.z)).xy)
+					- current * 8.0f;
 			}
 
 			float4 frag(v2f_volumeSlice In) : COLOR
