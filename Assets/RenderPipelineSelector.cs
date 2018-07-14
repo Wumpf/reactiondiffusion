@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 [ExecuteInEditMode]
@@ -15,5 +16,10 @@ public class RenderPipelineSelector : MonoBehaviour
     private void Awake()
     {
         UnityEngine.Rendering.GraphicsSettings.renderPipelineAsset = Pipeline;
+        EditorApplication.playModeStateChanged += (_) =>
+        {
+            UnityEngine.Rendering.GraphicsSettings.renderPipelineAsset = null;
+            UnityEngine.Rendering.GraphicsSettings.renderPipelineAsset = Pipeline;
+        };
     }
 }
