@@ -96,10 +96,4 @@ public class ReactionDiffusionCube : MonoBehaviour
         Camera.main.RemoveCommandBuffer(volumeUpdateEvent, initCmdBuffer);
         Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
     }
-
-    void Update ()
-    {
-        // Spinning cube!!111!!!
-     //   transform.Rotate(0.0f, Time.deltaTime*10.0f, 0.0f);
-    }
 }

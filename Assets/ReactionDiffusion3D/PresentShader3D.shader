@@ -54,7 +54,7 @@
 				{
 					float2 sampledVolume = SampleVolume(pos);
 					float sampleOpacity = sampledVolume.y * 1.8f; // dot(sampledVolume, sampledVolume) * 4.0f;
-					float sampleValue = sampledVolume.y; //1.0f;
+					float sampleValue = sampledVolume.y;
 
 					sampleOpacity *= stepSize;
 

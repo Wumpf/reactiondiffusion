@@ -202,6 +202,7 @@ GameObject:
   - component: {fileID: 1766492090}
   - component: {fileID: 1766492089}
   - component: {fileID: 1766492092}
+  - component: {fileID: 1766492093}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -262,8 +263,8 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1766492088}
-  m_LocalRotation: {x: 0.22840518, y: 0.27294576, z: -0.06677456, w: 0.93213356}
-  m_LocalPosition: {x: -0.85721874, y: 0.7419213, z: -1.4574733}
+  m_LocalRotation: {x: -0.23022744, y: -0.30321282, z: 0.07563908, w: -0.9215943}
+  m_LocalPosition: {x: -0.7801919, y: 0.575037, z: -1.131011}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -281,6 +282,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Pipeline: {fileID: 0}
+--- !u!114 &1766492093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1766492088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de6007582ad4dd546b09c5dd31ff1ffd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1832922253
 GameObject:
   m_ObjectHideFlags: 0
@@ -292,6 +304,7 @@ GameObject:
   - component: {fileID: 1832922255}
   - component: {fileID: 1832922254}
   - component: {fileID: 1832922257}
+  - component: {fileID: 1832922258}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -368,3 +381,14 @@ MonoBehaviour:
   InitMaterial: {fileID: 2100000, guid: 1b477d4ec22c489418773c4bf28500a7, type: 2}
   IterationMaterial: {fileID: 2100000, guid: 31836c0367c1b3644a791b61ae46e364, type: 2}
   RenderTextureResolution: 128
+--- !u!114 &1832922258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1832922253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc153a531acfef34aa782dc286e77917, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
