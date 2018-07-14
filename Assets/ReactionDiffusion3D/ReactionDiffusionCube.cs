@@ -14,8 +14,8 @@ public class ReactionDiffusionCube : MonoBehaviour
     public int RenderTextureResolution = 128;
 
     // Must be even! Todo: Enforce, Expose
-    [Range(2, 200)]
-    private int NumIterationsPerFrame = 15;
+    [Range(2, 100)]
+    public int NumIterationsPerFrame = 8;
 
     private readonly RenderTexture[] renderTexture = new RenderTexture[] {null, null};
     private MaterialPropertyBlock[,] materialPerSliceProperties;
@@ -25,6 +25,13 @@ public class ReactionDiffusionCube : MonoBehaviour
     //private int backRenderTextureIdx => (frontRenderTextureIdx + 1) % 2;
 
     private const CameraEvent volumeUpdateEvent = CameraEvent.BeforeForwardOpaque;
+
+    private void OnValidate()
+    {
+        if (NumIterationsPerFrame % 2 != 0)
+            NumIterationsPerFrame++;
+        IterationMaterial?.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
+    }
 
     private void CreateVolumes()
     {
@@ -70,10 +77,24 @@ public class ReactionDiffusionCube : MonoBehaviour
         }
     }
 
+    private IEnumerator StartAnimation()
+    {
+        // Initialize phase.
+        var initCmdBuffer = new CommandBuffer();
+        initCmdBuffer.name = "Init Volume";
+        AddVolumeUpdateToCommandBuffer(initCmdBuffer, 0, InitMaterial);
+        Camera.main.AddCommandBuffer(volumeUpdateEvent, initCmdBuffer);
+
+        // Start iterations.
+        yield return new WaitForEndOfFrame();
+        Camera.main.RemoveCommandBuffer(volumeUpdateEvent, initCmdBuffer);
+        Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
+    }
+
     private IEnumerator Start()
     {
         CreateVolumes();
-   
+
         // Setup iterations.
         iterationCommandBuffer = new CommandBuffer();
         iterationCommandBuffer.name = "Volume Iteration";
@@ -85,15 +106,6 @@ public class ReactionDiffusionCube : MonoBehaviour
         IterationMaterial.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
         GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
 
-        // Initialize phase.
-        var initCmdBuffer = new CommandBuffer();
-        initCmdBuffer.name = "Init Volume";
-        AddVolumeUpdateToCommandBuffer(initCmdBuffer, 0, InitMaterial);
-        Camera.main.AddCommandBuffer(volumeUpdateEvent, initCmdBuffer);
-
-        // Start iterations.
-        yield return new WaitForEndOfFrame();
-        Camera.main.RemoveCommandBuffer(volumeUpdateEvent, initCmdBuffer);
-        Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
+        return StartAnimation();
     }
 }
