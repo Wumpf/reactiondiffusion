@@ -159,6 +159,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _NoiseTexture:
+        m_Texture: {fileID: 2800000, guid: f7d4c7a37ac85d24bbf423ad08efde24, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -380,7 +384,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   InitMaterial: {fileID: 2100000, guid: 1b477d4ec22c489418773c4bf28500a7, type: 2}
   IterationMaterial: {fileID: 2100000, guid: 31836c0367c1b3644a791b61ae46e364, type: 2}
-  RenderTextureResolution: 128
+  RenderTextureResolution: 256
+  NumIterationsPerFrame: 6
 --- !u!114 &1832922258
 MonoBehaviour:
   m_ObjectHideFlags: 0
