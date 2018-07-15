@@ -1,38 +1,37 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 namespace ReactionDiffusion2D
 {
-    [CreateAssetMenu(fileName = nameof(RenderPipeline),
-        menuName = "Rendering/" + nameof(RenderPipeline), order = 1)]
+    [CreateAssetMenu(fileName = nameof(ReactionDiffusion2DRenderPipeline),
+        menuName = "Rendering/" + nameof(ReactionDiffusion2DRenderPipeline), order = 1)]
     public class RenderPipelineAsset : UnityEngine.Experimental.Rendering.RenderPipelineAsset
     {
         public Shader ReactionDiffusionIterationShader;
-        public Shader ReactionDiffusionInitShader;
+        public Shader ReactionDiffusionBrushShader;
         public Shader PresentShader;
         public int NumIterationsPerFrame = 200;
 
-        protected override IRenderPipeline InternalCreatePipeline() => new RenderPipeline(this);
+        protected override IRenderPipeline InternalCreatePipeline() => new ReactionDiffusion2DRenderPipeline(this);
     }
 
-    public class RenderPipeline : UnityEngine.Experimental.Rendering.RenderPipeline
+    public class ReactionDiffusion2DRenderPipeline : UnityEngine.Experimental.Rendering.RenderPipeline
     {
         private readonly RenderTexture[] renderTexture = new RenderTexture[2] {null, null};
         private int frontRenderTextureIdx = 0;
 
         private readonly Material reactionDiffusionIterationMaterial;
-        private readonly Material reactionDiffusionInitMaterial;
+        private readonly Material reactionDiffusionBrushMaterial;
         private readonly Material presentMaterial;
 
         public RenderPipelineAsset asset;
 
-        public RenderPipeline(RenderPipelineAsset asset)
+
+        public ReactionDiffusion2DRenderPipeline(RenderPipelineAsset asset)
         {
             reactionDiffusionIterationMaterial = new Material(asset.ReactionDiffusionIterationShader);
-            reactionDiffusionInitMaterial = new Material(asset.ReactionDiffusionInitShader);
+            reactionDiffusionBrushMaterial = new Material(asset.ReactionDiffusionBrushShader);
             presentMaterial = new Material(asset.PresentShader);
             this.asset = asset;
         }
@@ -44,6 +43,7 @@ namespace ReactionDiffusion2D
                 renderTexture[i]?.Release();
                 renderTexture[i] = new RenderTexture(camera.pixelWidth, camera.pixelHeight, 0);
                 renderTexture[i].format = RenderTextureFormat.RGFloat;
+                renderTexture[i].wrapMode = TextureWrapMode.Repeat;
                 renderTexture[i].Create();
             }
         }
@@ -55,34 +55,90 @@ namespace ReactionDiffusion2D
             a = oldB;
         }
 
-        public override void Render(ScriptableRenderContext context, Camera[] cameras)
+        private void PerformReactionDiffusionSimulation(CommandBuffer cmd, Camera camera)
         {
-            var cmd = new CommandBuffer();
+            if (camera != Camera.main)
+                return;
+
             int backRenderTextureIdx = (frontRenderTextureIdx + 1) % 2;
 
-            if (renderTexture[0] == null || renderTexture[0].width != cameras[0].pixelWidth ||
-                renderTexture[0].height != cameras[0].pixelHeight)
+            if ((renderTexture[0] == null || renderTexture[0].width != camera.pixelWidth ||
+                renderTexture[0].height != camera.pixelHeight))
             {
-                CreateRenderTextures(cameras[0]);
-                reactionDiffusionInitMaterial.SetFloat("_AspectRatio", ((float)renderTexture[0].width) / renderTexture[0].height);
-                cmd.Blit(renderTexture[backRenderTextureIdx], renderTexture[frontRenderTextureIdx], reactionDiffusionInitMaterial);
+                CreateRenderTextures(camera);
+                cmd.SetRenderTarget(renderTexture[frontRenderTextureIdx]);
+                cmd.ClearRenderTarget(false, true, new Color(1.0f, 0.0f, 0.0f, 0.0f));
             }
 
-            reactionDiffusionIterationMaterial.SetFloat("_NumIterationsPerFrame", asset.NumIterationsPerFrame);
+            foreach (var brush in Object.FindObjectsOfType<Brush2D>())
+            {
+                for (int i = 0; i < 16 && !brush.queuedStrokes.IsEmpty; ++i)
+                {
+                    Brush2D.BrushStroke stroke;
+                    if (!brush.queuedStrokes.TryDequeue(out stroke))
+                        continue;
+
+                    var positionPixel = camera.WorldToScreenPoint(Vector3Utils.From(stroke.Position));
+                    float sizePixel = stroke.Radius * camera.pixelHeight / camera.orthographicSize * 0.5f;
+                    reactionDiffusionBrushMaterial.SetVector("_BrushPositionPixel", new Vector2(positionPixel.x, positionPixel.y));
+                    reactionDiffusionBrushMaterial.SetFloat("_BrushRadiusPixel", sizePixel);
+                    reactionDiffusionBrushMaterial.SetFloat("_BrushIntensity", stroke.Intensity);
+
+                    // TODO: Drawing a quad would be more efficient ofc.
+                    cmd.Blit(null, renderTexture[frontRenderTextureIdx], reactionDiffusionBrushMaterial);
+                }
+            }
 
             if (!UnityEditor.EditorApplication.isPaused)
             {
+                reactionDiffusionIterationMaterial.SetFloat("_NumIterationsPerFrame", asset.NumIterationsPerFrame);
                 for (int i = 0; i < asset.NumIterationsPerFrame; ++i)
                 {
                     Swap(ref frontRenderTextureIdx, ref backRenderTextureIdx);
                     cmd.Blit(renderTexture[backRenderTextureIdx], renderTexture[frontRenderTextureIdx], reactionDiffusionIterationMaterial);
                 }
             }
+        }
 
-            cmd.Blit(renderTexture[frontRenderTextureIdx], cameras[0].activeTexture, presentMaterial);
+        private void RenderDefaultUnlit(ScriptableRenderContext context, Camera camera)
+        {
+            // Culling
+            ScriptableCullingParameters cullingParams;
+            if (!CullResults.GetCullingParameters(camera, out cullingParams))
+                return; // How can this happen, what does it mean?
+            cullingParams.cullingFlags = CullFlag.None;
+            CullResults cullResults = new CullResults();
+            CullResults.Cull(ref cullingParams, context, ref cullResults);
 
+            var filterSettings = new FilterRenderersSettings(true);
+            var drawSettings = new DrawRendererSettings(camera, new ShaderPassName("SRPDefaultUnlit"));
+
+            // Drawing regular opaque
+            drawSettings.sorting.flags = SortFlags.CommonOpaque;
+            filterSettings.renderQueueRange = RenderQueueRange.opaque;
+            context.DrawRenderers(cullResults.visibleRenderers, ref drawSettings, filterSettings);
+
+            // Drawing regular transparent
+            drawSettings.sorting.flags = SortFlags.CommonTransparent;
+            filterSettings.renderQueueRange = RenderQueueRange.transparent;
+            context.DrawRenderers(cullResults.visibleRenderers, ref drawSettings, filterSettings);
+        }
+
+        public override void Render(ScriptableRenderContext context, Camera[] cameras)
+        {
+            if (cameras.Length != 1)
+                Debug.LogError("Only a single camera is supported!");
+            Camera camera = cameras[0];
+            context.SetupCameraProperties(camera, false);
+
+            var cmd = new CommandBuffer();
+            PerformReactionDiffusionSimulation(cmd, camera);
+            cmd.Blit(renderTexture[frontRenderTextureIdx], camera.activeTexture, presentMaterial);
             context.ExecuteCommandBuffer(cmd);
             cmd.Release();
+
+            RenderDefaultUnlit(context, camera);
+
             context.Submit();
         }
     }
