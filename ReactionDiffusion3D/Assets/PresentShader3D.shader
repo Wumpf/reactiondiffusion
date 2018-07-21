@@ -58,7 +58,7 @@
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
 				float3 dir = normalize(In.volumePos - cameraPosVolume);
 
-				const float stepSize = 0.04f;
+				const float stepSize = 0.025f;
 				dir *= stepSize;
 
 				float3 pos = In.volumePos + float3(0.5f, 0.5f, 0.5f);

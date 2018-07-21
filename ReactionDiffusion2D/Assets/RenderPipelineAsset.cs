@@ -78,7 +78,7 @@ namespace ReactionDiffusion2D
                     if (!brush.queuedStrokes.TryDequeue(out stroke))
                         continue;
 
-                    var positionPixel = camera.WorldToScreenPoint(Vector3Utils.From(stroke.Position));
+                    var positionPixel = camera.WorldToScreenPoint(new Vector3(stroke.Position.x, stroke.Position.y));
                     float sizePixel = stroke.Radius * camera.pixelHeight / camera.orthographicSize * 0.5f;
                     reactionDiffusionBrushMaterial.SetVector("_BrushPositionPixel", new Vector2(positionPixel.x, positionPixel.y));
                     reactionDiffusionBrushMaterial.SetFloat("_BrushRadiusPixel", sizePixel);

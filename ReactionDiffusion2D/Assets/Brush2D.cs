@@ -33,7 +33,8 @@ public class Brush2D : MonoBehaviour
         const float maxScale = 1.0f;
         const float scaleFactor = 0.05f;
 
-        transform.localScale = Vector3Utils.From(Mathf.Clamp(transform.localScale.x * (1.0f + Input.mouseScrollDelta.y * scaleFactor), minScale, maxScale));
+        float scale = Mathf.Clamp(transform.localScale.x * (1.0f + Input.mouseScrollDelta.y * scaleFactor), minScale, maxScale);
+        transform.localScale = new Vector3(scale, scale, scale);
 
         if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
         {
