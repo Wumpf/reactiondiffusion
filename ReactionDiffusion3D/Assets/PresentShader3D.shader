@@ -8,6 +8,7 @@
 	SubShader
 	{
 		//ZWrite Off ZTest Always
+		Cull Front
 
 		Pass
 		{
@@ -53,6 +54,32 @@
 				return float3(E - posOpacity, N - posOpacity, U - posOpacity) / stepSize;
 			}
 
+			// Box intersection by iq
+			// http://www.iquilezles.org/www/articles/boxfunctions/boxfunctions.htm
+			float2 BoxIntersection(float3 ro, float3 rd, float3 boxSize)
+			{
+				float3 m = 1.0 / rd;
+				float3 n = m * ro;
+				float3 k = abs(m)*boxSize;
+
+				float3 t1 = -n - k;
+				float3 t2 = -n + k;
+
+				float tN = max(max(t1.x, t1.y), t1.z);
+				float tF = min(min(t2.x, t2.y), t2.z);
+
+				if (tN > tF || tF < 0.0f) return float2(-1.0f, -1.0f); // no intersection
+
+				//outNormal = -sign(rdd)*step(t1.yzx, t1.xyz)*step(t1.zxy, t1.xyz);
+
+				return float2(tN, tF);
+			}
+
+			bool IsOutsideUnitCube(float3 pos)
+			{
+				return pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f;
+			}
+
 			float4 frag(v2f In) : COLOR
 			{
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
@@ -61,7 +88,12 @@
 				const float stepSize = 0.025f;
 				dir *= stepSize;
 
-				float3 pos = In.volumePos + float3(0.5f, 0.5f, 0.5f);
+				const float3 cubeExtent = float3(0.5f, 0.5f, 0.5f);
+				float3 pos = cameraPosVolume + cubeExtent;
+				if (IsOutsideUnitCube(pos))
+					pos += BoxIntersection(cameraPosVolume, dir, cubeExtent).x * dir;
+
+				// Random offset
 				float offset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x + 0.1f;
 				pos += dir * offset;
 
@@ -91,8 +123,7 @@
 					float sampleWeight = (1.0f - accumulatedOpacity) * sampleOpacity;
 					accumulatedColor += sampleWeight * sampleColor;
 
-					if (accumulatedOpacity > 0.99f ||
-						pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f)
+					if (accumulatedOpacity > 0.99f || IsOutsideUnitCube(pos))
 					{
 						return float4(accumulatedColor*accumulatedOpacity, 1.0f);
 						//return float4(value*accumulatedOpacity, 0.0f, 1.0f);
