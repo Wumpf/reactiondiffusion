@@ -4,7 +4,7 @@
 	{
 		//_ReactionDiffusionVolume ("Volume", 3D) = "white" {}
 		_NoiseTexture ("Noise", 2D) = "white" {}
-		_DensityFactor ("DensityFactor", Float) = 10.0
+		_ExtinctionFactor ("ExtinctionFactor", Float) = 10.0
 		_VolumeMarchStepSize ("VolumeMarchStepSize", Float) = 0.025
 	}
 	SubShader
@@ -27,7 +27,7 @@
 			sampler2D _NoiseTexture;
 			float4 _NoiseTexture_TexelSize;
 
-			float _DensityFactor;
+			float _ExtinctionFactor;
 			float _VolumeMarchStepSize;
 
 			struct v2f
@@ -51,7 +51,7 @@
 
 			float GetDensity(float2 sampledVolume)
 			{
-				return sampledVolume.y * _DensityFactor;
+				return sampledVolume.y;
 			}
 
 			float3 ComputeGradient(float3 pos, float density, float stepSize)
@@ -88,21 +88,27 @@
 				return pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f;
 			}
 
-			float4 frag(v2f In) : COLOR
+			void ComputeRay(v2f In, out float3 pos, out float3 dir)
 			{
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
-				float3 dir = normalize(In.volumePos - cameraPosVolume);
+				dir = normalize(In.volumePos - cameraPosVolume);
 
 				dir *= _VolumeMarchStepSize;
 
 				const float3 cubeExtent = float3(0.5f, 0.5f, 0.5f);
-				float3 pos = cameraPosVolume + cubeExtent;
+				pos = cameraPosVolume + cubeExtent;
 				if (IsOutsideUnitCube(pos))
 					pos += BoxIntersection(cameraPosVolume, dir, cubeExtent).x * dir;
 
 				// Random offset
 				float offset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x + 0.1f;
 				pos += dir * offset;
+			}
+
+			float4 frag(v2f In) : COLOR
+			{
+				float3 pos, dir;
+				ComputeRay(In, pos, dir);
 
 				float3 accumulatedColor = 0.0f;
 				float accumulatedTransmittance = 1.0f;
@@ -110,8 +116,7 @@
 				for (int i = 0; i < 128; ++i)
 				{
 					pos += dir;
-					float2 sampledVolume = SampleVolume(pos);
-					float density = GetDensity(sampledVolume);
+					float density = GetDensity(SampleVolume(pos));
 
 					float3 gradient = ComputeGradient(pos, density, _VolumeMarchStepSize);
 					float gradientLenSq = dot(gradient, gradient); // The longer the gradient the clearer is the surface defined
@@ -123,9 +128,12 @@
 					}
 					float3 sampleColor = float3(lighting, lighting, lighting);
 
+					// todo http://www.wolframalpha.com/input/?i=integrate+from+0+to+z:+e%5E(-d*x)+*+S+dx
+					// (see frostbite, advances 2015)
+
 					// We walk from the camera through the volume.
 					// The further we walk, the less relevant get our samples since less right reaches the viewer / more is absorbed on the way.
-					float sampleTransmittance = exp(-density * _VolumeMarchStepSize); // Beer lambert law
+					float sampleTransmittance = exp(-density * _ExtinctionFactor * _VolumeMarchStepSize); // Beer lambert law
 					accumulatedTransmittance *= sampleTransmittance;
 					accumulatedColor += accumulatedTransmittance * (1.0f - sampleTransmittance) * sampleColor;
 					
@@ -145,10 +153,6 @@
 
 				// Error: Didn't have enough steps!
 				return float4(1.0f, 0.0f, 1.0f, 1.0f);
-
-				//clip(value*accumulatedOpacity - 0.001f);
-				//return float4(In.volumePos, 0.0f);
-				//return float4(SampleVolume().xy, 0.0f, 1.0f);
 			}
 			ENDCG
 		}
