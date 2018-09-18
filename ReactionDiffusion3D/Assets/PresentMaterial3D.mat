@@ -24,5 +24,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _DensityFactor: 50
+    - _ExtinctionFactor: 6
+    - _ScatteringAnisotropy: 0.01
+    - _ScatteringFactor: 4
     - _VolumeMarchStepSize: 0.025
     m_Colors: []
