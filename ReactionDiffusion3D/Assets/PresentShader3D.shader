@@ -4,13 +4,20 @@
 	{
 		//_ReactionDiffusionVolume ("Volume", 3D) = "white" {}
 		_NoiseTexture ("Noise", 2D) = "white" {}
-		_ExtinctionFactor ("ExtinctionFactor", Float) = 10.0
+
+		// Linear attenuation coefficient. (for density 1)
+		// Fraction of light scattered & absorbed / fraction that passes through.
+		_ExtinctionFactor ("ExtinctionFactor", Float) = 8.0
+		
+		// Fraction of light scattered / fraction that passes through.
+		_ScatteringFactor ("ScatteringFactor", Float) = 1.0
+
 		_VolumeMarchStepSize ("VolumeMarchStepSize", Float) = 0.025
 	}
 	SubShader
 	{
 		//ZWrite Off ZTest Always
-		Blend One OneMinusSrcAlpha
+		Blend One SrcAlpha // Alpha is extinction/, color is premultiplied
 		Cull Front
 
 		Pass
@@ -28,6 +35,7 @@
 			float4 _NoiseTexture_TexelSize;
 
 			float _ExtinctionFactor;
+			float _ScatteringFactor;
 			float _VolumeMarchStepSize;
 
 			struct v2f
@@ -110,9 +118,7 @@
 				float3 pos, dir;
 				ComputeRay(In, pos, dir);
 
-				float3 accumulatedColor = 0.0f;
-				float accumulatedTransmittance = 1.0f;
-
+				float4 accumScatteringTransmittance = float4(0.0f, 0.0f, 0.0f, 1.0f);
 				for (int i = 0; i < 128; ++i)
 				{
 					pos += dir;
@@ -126,28 +132,21 @@
 						float3 normal = gradient * rsqrt(gradientLenSq);
 						lighting = saturate(dot(normal, -_WorldSpaceLightPos0.xyz));
 					}
-					float3 sampleColor = float3(lighting, lighting, lighting);
+					float3 sampleScattering = float3(lighting, lighting, lighting);
+					sampleScattering *= _ScatteringFactor * _VolumeMarchStepSize;
 
 					// todo http://www.wolframalpha.com/input/?i=integrate+from+0+to+z:+e%5E(-d*x)+*+S+dx
 					// (see frostbite, advances 2015)
 
 					// We walk from the camera through the volume.
 					// The further we walk, the less relevant get our samples since less right reaches the viewer / more is absorbed on the way.
-					float sampleTransmittance = exp(-density * _ExtinctionFactor * _VolumeMarchStepSize); // Beer lambert law
-					accumulatedTransmittance *= sampleTransmittance;
-					accumulatedColor += accumulatedTransmittance * (1.0f - sampleTransmittance) * sampleColor;
-					
-					// Alternative, equivalent computation:
-					// https://www.kth.se/social/files/565e35dff27654457fb84363/08_VolumeRendering.pdf slide 29
-					//float sampleOpacity = 1.0f - exp(-density * _VolumeMarchStepSize); // Beer lambert law
-					//float sampleAbsorptionFactor = (1.0f - accumulatedOpacity) * sampleOpacity;
-					//accumulatedColor += sampleAbsorptionFactor * sampleColor;
-					//accumulatedOpacity += sampleAbsorptionFactor;
+					float sampleTransmittance = exp(-density * _ExtinctionFactor * _VolumeMarchStepSize); // Absorption using beer lambert law
+					accumScatteringTransmittance.a *= sampleTransmittance;
+					accumScatteringTransmittance.rgb += accumScatteringTransmittance.a * sampleScattering;
 
-					if (accumulatedTransmittance < 0.01f || IsOutsideUnitCube(pos))
+					if (accumScatteringTransmittance.a < 0.01f || IsOutsideUnitCube(pos))
 					{
-						float accumulatedOpacity = 1.0f - accumulatedTransmittance;
-						return float4(accumulatedColor*accumulatedOpacity, accumulatedOpacity);
+						return accumScatteringTransmittance;
 					}
 				}
 
