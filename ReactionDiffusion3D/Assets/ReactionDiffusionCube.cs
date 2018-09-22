@@ -126,7 +126,6 @@ public class ReactionDiffusionCube : MonoBehaviour
             AddVolumeUpdateToCommandBuffer(iterationCommandBuffer, updatedVolumeIndex, IterationMaterial);
         }
         IterationMaterial.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
-        GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
 
         // Setup brush.
         brushCommandBuffer = new CommandBuffer();
@@ -138,7 +137,11 @@ public class ReactionDiffusionCube : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButton(0))
+        if (Input.GetKey(KeyCode.Space))
             StartCoroutine(DrawBrush());
+
+        // Set texture every frame so we get don't loose it if the shader reloads.
+        // Note: For some reason we loose our simulation state if we reload while the simulation is active. Not sure why and can't find a callback for shader reload.
+        GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
     }
 }
