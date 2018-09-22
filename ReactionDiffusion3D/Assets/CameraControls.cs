@@ -31,13 +31,13 @@ public class CameraControls : MonoBehaviour
             transform.position += transform.right * moveSpeed * Time.deltaTime;
         if (Input.GetKey(KeyCode.A))
             transform.position -= transform.right * moveSpeed * Time.deltaTime;
-	    transform.position =
-	        new Vector3()
-	        {
-	            x = Mathf.Clamp(transform.position.x, -ConfinmentZone, ConfinmentZone),
-	            y = Mathf.Clamp(transform.position.y, -ConfinmentZone, ConfinmentZone),
-	            z = Mathf.Clamp(transform.position.z, -ConfinmentZone, ConfinmentZone),
-	        };
+	    //transform.position =
+	    //    new Vector3()
+	    //    {
+	    //        x = Mathf.Clamp(transform.position.x, -ConfinmentZone, ConfinmentZone),
+	    //        y = Mathf.Clamp(transform.position.y, -ConfinmentZone, ConfinmentZone),
+	    //        z = Mathf.Clamp(transform.position.z, -ConfinmentZone, ConfinmentZone),
+	    //    };
 
         if (Input.GetMouseButton(1))
         {
