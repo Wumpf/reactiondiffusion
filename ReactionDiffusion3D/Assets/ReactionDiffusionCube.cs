@@ -22,10 +22,15 @@ public class ReactionDiffusionCube : MonoBehaviour
     private CommandBuffer iterationCommandBuffer;
     private CommandBuffer brushCommandBuffer;
 
-    //private int frontRenderTextureIdx = 0;
-    //private int backRenderTextureIdx => (frontRenderTextureIdx + 1) % 2;
-
     private const CameraEvent volumeUpdateEvent = CameraEvent.BeforeForwardOpaque;
+
+    public void EnableSimulation(bool enable)
+    {
+        if (enable)
+            Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
+        else
+            Camera.main.RemoveCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
+    }
 
     private void OnValidate()
     {
