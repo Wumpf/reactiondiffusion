@@ -94,8 +94,6 @@ public class ReactionDiffusionCube : MonoBehaviour
 
     private IEnumerator InitSimulation()
     {
-        yield return new WaitForEndOfFrame();
-
         var initCommandBuffer = new CommandBuffer();
         initCommandBuffer.name = "Init";
         foreach (RenderTexture target in renderTexture)
