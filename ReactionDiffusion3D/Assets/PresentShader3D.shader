@@ -7,13 +7,13 @@
 
 		// Linear attenuation coefficient. (for density 1)
 		// Fraction of light scattered & absorbed / fraction that passes through.
-		_ExtinctionFactor ("ExtinctionFactor", Float) = 6.0
+		_ExtinctionFactor ("ExtinctionFactor", Float) = 100
 
 		// Fraction of light scattered / fraction that passes through.
-		_ScatteringFactor ("ScatteringFactor", Float) = 4.0
+		_ScatteringFactor ("ScatteringFactor", Float) = 85
 
 		// Higher value mean more directed scattering.
-		_ScatteringAnisotropy ("ScatteringAnisotropy", Float) = 0.01
+		_ScatteringAnisotropy ("ScatteringAnisotropy", Range(0.0, 1.0)) = 0.3
 
 		_VolumeMarchStepSize ("VolumeMarchStepSize", Float) = 0.025
 	}
@@ -124,10 +124,9 @@
 
 					// Henyey Greenstein phase function
 					float3 gradient = ComputeGradient(pos, density, _VolumeMarchStepSize);
-					float gradientLenSq = dot(gradient, gradient);
-					float3 normal = gradient * rsqrt(max(gradientLenSq, 0.0001));
-					float g = saturate(gradientLenSq * _ScatteringAnisotropy); // 0 isotropic, 1 forward scattering
-					float gSq = g * g;
+					float3 normal = gradient * rsqrt(max(dot(gradient, gradient), 0.0001));
+					const float g = _ScatteringAnisotropy;
+					const float gSq = g * g;
 					float hgPhase = (1.0f - gSq) * pow(1.0f + gSq - 2.0f * g * dot(normal, -_WorldSpaceLightPos0.xyz), -3.0f / 2.0f) * 0.25; // dropped 1/pi factor
 					float sampleScattering = _ScatteringFactor * density * _VolumeMarchStepSize * hgPhase;
 
