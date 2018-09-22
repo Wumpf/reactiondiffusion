@@ -7,19 +7,20 @@ using UnityEngine.Rendering;
 [RequireComponent(typeof(MeshRenderer))]
 public class ReactionDiffusionCube : MonoBehaviour
 {
-    public Material InitMaterial;
+    public Material BrushMaterial;
     public Material IterationMaterial;
 
     [Range(16, 512)]
-    public int RenderTextureResolution = 128;
+    public int RenderTextureResolution = 256;
 
     // Must be even! Todo: Enforce, Expose
     [Range(2, 100)]
-    public int NumIterationsPerFrame = 8;
+    public int NumIterationsPerFrame = 6;
 
     private readonly RenderTexture[] renderTexture = new RenderTexture[] {null, null};
     private MaterialPropertyBlock[,] materialPerSliceProperties;
     private CommandBuffer iterationCommandBuffer;
+    private CommandBuffer brushCommandBuffer;
 
     //private int frontRenderTextureIdx = 0;
     //private int backRenderTextureIdx => (frontRenderTextureIdx + 1) % 2;
@@ -77,21 +78,16 @@ public class ReactionDiffusionCube : MonoBehaviour
         }
     }
 
-    private IEnumerator StartAnimation()
+    private IEnumerator DrawBrush()
     {
-        // Initialize phase.
-        var initCmdBuffer = new CommandBuffer();
-        initCmdBuffer.name = "Init Volume";
-        AddVolumeUpdateToCommandBuffer(initCmdBuffer, 0, InitMaterial);
-        Camera.main.AddCommandBuffer(volumeUpdateEvent, initCmdBuffer);
-
-        // Start iterations.
+        BrushMaterial.SetVector("_BrushPositionSize", new Vector4(0.5f, 0.5f, 0.5f, 0.2f));
+        Camera.main.AddCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
+        
         yield return new WaitForEndOfFrame();
-        Camera.main.RemoveCommandBuffer(volumeUpdateEvent, initCmdBuffer);
-        Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
+        Camera.main.RemoveCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
     }
 
-    private IEnumerator Start()
+    private void Start()
     {
         CreateVolumes();
 
@@ -105,7 +101,17 @@ public class ReactionDiffusionCube : MonoBehaviour
         }
         IterationMaterial.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
         GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
+        Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
 
-        return StartAnimation();
+        // Setup brush.
+        brushCommandBuffer = new CommandBuffer();
+        brushCommandBuffer.name = "Brush";
+        AddVolumeUpdateToCommandBuffer(brushCommandBuffer, 0, BrushMaterial);
+    }
+
+    private void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+            StartCoroutine(DrawBrush());
     }
 }

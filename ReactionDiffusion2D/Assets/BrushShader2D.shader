@@ -19,7 +19,7 @@
 			float4 frag(v2f_img In) : COLOR
 			{
 				float2 toBrushCenter = _BrushPositionPixel - In.uv * _ScreenParams.xy;
-				float2 brushDist = length(toBrushCenter);
+				float brushDist = length(toBrushCenter);
 				clip(_BrushRadiusPixel - brushDist);
 				float brushIntensity = 1.0f - brushDist / _BrushRadiusPixel;
 				brushIntensity *= brushIntensity;
