@@ -19,7 +19,7 @@
 	}
 	SubShader
 	{
-		//ZWrite Off ZTest Always
+		ZWrite Off ZTest Always
 		Blend One SrcAlpha // Alpha is extinction, color is premultiplied
 		Cull Front
 
