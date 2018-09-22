@@ -56,21 +56,16 @@
 				return o;
 			}
 
-			float2 SampleVolume(float3 volumePos)
+			float SampleVolumeDensity(float3 volumePos)
 			{
-				return tex3Dlod(_ReactionDiffusionVolume, float4(volumePos, 0.0f)).xy;
-			}
-
-			float GetDensity(float2 sampledVolume)
-			{
-				return sampledVolume.y;
+				return tex3Dlod(_ReactionDiffusionVolume, float4(volumePos, 0.0f)).y;
 			}
 
 			float3 ComputeGradient(float3 pos, float density, float stepSize)
 			{
-				float E = GetDensity(SampleVolume(pos + float3(stepSize, 0, 0)));
-				float N = GetDensity(SampleVolume(pos + float3(0, stepSize, 0)));
-				float U = GetDensity(SampleVolume(pos + float3(0, 0, stepSize)));
+				float E = SampleVolumeDensity(pos + float3(stepSize, 0, 0));
+				float N = SampleVolumeDensity(pos + float3(0, stepSize, 0));
+				float U = SampleVolumeDensity(pos + float3(0, 0, stepSize));
 				return float3(E - density, N - density, U - density) / stepSize;
 			}
 
@@ -126,7 +121,7 @@
 				for (int i = 0; i < 128; ++i)
 				{
 					pos += dir;
-					float density = GetDensity(SampleVolume(pos));
+					float density = SampleVolumeDensity(pos);
 
 					// Henyey Greenstein phase function
 					float3 gradient = ComputeGradient(pos, density, _VolumeMarchStepSize);
