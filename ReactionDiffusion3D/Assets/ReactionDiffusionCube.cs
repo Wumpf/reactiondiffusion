@@ -87,7 +87,28 @@ public class ReactionDiffusionCube : MonoBehaviour
         Camera.main.RemoveCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
     }
 
-    private void Start()
+    private IEnumerator InitSimulation()
+    {
+        yield return new WaitForEndOfFrame();
+
+        var initCommandBuffer = new CommandBuffer();
+        initCommandBuffer.name = "Init";
+        foreach (RenderTexture target in renderTexture)
+        {
+            for(int slice=0; slice<RenderTextureResolution; ++slice)
+            {
+                initCommandBuffer.SetRenderTarget(target, 0, CubemapFace.Unknown, slice);
+                initCommandBuffer.ClearRenderTarget(false, true, new Color(1.0f, 0.0f, 0.0f, 0.0f));
+            }
+        }
+        Camera.main.AddCommandBuffer(volumeUpdateEvent, initCommandBuffer);
+
+        yield return new WaitForEndOfFrame();
+        Camera.main.RemoveCommandBuffer(volumeUpdateEvent, initCommandBuffer);
+        Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
+    }
+
+    private IEnumerator Start()
     {
         CreateVolumes();
 
@@ -101,17 +122,18 @@ public class ReactionDiffusionCube : MonoBehaviour
         }
         IterationMaterial.SetFloat("_NumIterationsPerFrame", NumIterationsPerFrame);
         GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
-        Camera.main.AddCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
 
         // Setup brush.
         brushCommandBuffer = new CommandBuffer();
         brushCommandBuffer.name = "Brush";
         AddVolumeUpdateToCommandBuffer(brushCommandBuffer, 0, BrushMaterial);
+
+        return InitSimulation();
     }
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButton(0))
             StartCoroutine(DrawBrush());
     }
 }

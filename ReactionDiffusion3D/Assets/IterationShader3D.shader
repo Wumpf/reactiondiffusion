@@ -6,7 +6,7 @@
 		_DiffusionRate ("DiffusionRate", Vector) = (1.0, 0.5, 0.0, 0.0)
 		_KillRate ("KillRate", Float) = 0.062
 		_FeedRate ("FeedRate", Float) = 0.0545
-		_Speed ("Speed", Float) = 80
+		_Speed ("Speed", Float) = 100
 	}
 	SubShader
 	{

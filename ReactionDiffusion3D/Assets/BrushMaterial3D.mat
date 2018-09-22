@@ -6,7 +6,7 @@ Material:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: InitMaterial3D
+  m_Name: BrushMaterial3D
   m_Shader: {fileID: 4800000, guid: 30771031c6eef5f4490dec174fc2c25b, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4

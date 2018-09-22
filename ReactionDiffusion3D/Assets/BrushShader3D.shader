@@ -20,7 +20,7 @@
 
 			float4 frag(v2f_volumeSlice In) : COLOR
 			{
-				float _BrushIntensity = 10.0f;
+				float _BrushIntensity = 1.0f;
 
 				float3 toBrushCenter = _BrushPositionSize.xyz - In.texcoord;
 				float brushDist = length(toBrushCenter);
