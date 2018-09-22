@@ -94,32 +94,40 @@
 				return pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f;
 			}
 
-			void ComputeRay(v2f In, out float3 pos, out float3 dir)
+			void ComputeRay(v2f In, out float3 pos, out float3 scaledDir, out float rayLength)
 			{
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
-				dir = normalize(In.volumePos - cameraPosVolume);	
-
-				dir *= _VolumeMarchStepSize;
+				scaledDir = normalize(In.volumePos - cameraPosVolume);
+				scaledDir *= _VolumeMarchStepSize; // This is what we mean here by "scaled"
 
 				const float3 cubeExtent = float3(0.5f, 0.5f, 0.5f);
 				pos = cameraPosVolume + cubeExtent;
+				float2 boxIntersection = BoxIntersection(cameraPosVolume, scaledDir, cubeExtent);
 				if (IsOutsideUnitCube(pos))
-					pos += BoxIntersection(cameraPosVolume, dir, cubeExtent).x * dir;
+				{
+					pos += boxIntersection.x * scaledDir;
+					rayLength = boxIntersection.y - boxIntersection.x;
+				}
+				else
+					rayLength = boxIntersection.y;
 
 				// Random offset
 				float offset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x + 0.1f;
-				pos += dir * offset;
+				rayLength -= offset;
+				pos += scaledDir * offset;
 			}
 
 			float4 frag(v2f In) : COLOR
 			{
-				float3 pos, dir;
-				ComputeRay(In, pos, dir);
+				float3 pos, scaledDir;
+				float rayLength;
+				ComputeRay(In, pos, scaledDir, rayLength);
 
 				float4 accumScatteringTransmittance = float4(0.0f, 0.0f, 0.0f, 1.0f);
-				for (int i = 0; i < 128; ++i)
+				const int maxNumSteps = min(128, (int)rayLength);
+				for (int i = 0; i < maxNumSteps && accumScatteringTransmittance.a > 0.01; ++i)
 				{
-					pos += dir;
+					pos += scaledDir;
 					float density = SampleVolumeDensity(pos);
 
 					// Henyey Greenstein phase function
@@ -141,15 +149,9 @@
 					accumScatteringTransmittance.rgb += accumScatteringTransmittance.a * sampleScattering + 
 														(sampleScattering - sampleTransmittance * sampleScattering) / (extinctionCoefficient + 1e-5);
 					accumScatteringTransmittance.a *= sampleTransmittance;
-
-					if (accumScatteringTransmittance.a < 0.01f || IsOutsideUnitCube(pos))
-					{
-						return accumScatteringTransmittance;
-					}
 				}
 
-				// Error: Didn't have enough steps!
-				return float4(1.0f, 0.0f, 1.0f, 1.0f);
+				return accumScatteringTransmittance;
 			}
 			ENDCG
 		}
