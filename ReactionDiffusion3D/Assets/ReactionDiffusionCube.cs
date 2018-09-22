@@ -9,6 +9,7 @@ public class ReactionDiffusionCube : MonoBehaviour
 {
     public Material BrushMaterial;
     public Material IterationMaterial;
+    public Transform BrushTransform;
 
     [Range(16, 512)]
     public int RenderTextureResolution = 256;
@@ -85,7 +86,10 @@ public class ReactionDiffusionCube : MonoBehaviour
 
     private IEnumerator DrawBrush()
     {
-        BrushMaterial.SetVector("_BrushPositionSize", new Vector4(0.5f, 0.5f, 0.5f, 0.2f));
+        float uniformScale = transform.lossyScale.x;
+        var brushPosition = BrushTransform.position / uniformScale + new Vector3(0.5f, 0.5f, 0.5f);
+
+        BrushMaterial.SetVector("_BrushPositionSize", new Vector4(brushPosition.x, brushPosition.y, brushPosition.z, 0.1f));
         Camera.main.AddCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
         
         yield return new WaitForEndOfFrame();
