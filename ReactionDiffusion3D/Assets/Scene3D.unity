@@ -511,7 +511,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_IgnoreReversedGraphics: 1
-  m_BlockingObjects: 0
+  m_BlockingObjects: 3
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -643,7 +643,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Enable Brush
+  m_Text: Brush (B)
 --- !u!222 &357828839
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -755,7 +755,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ed6a6c483db8f84bbe6e660f03fde54, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  KeyCode: 115
+  KeyCode: 32
 --- !u!4 &638308226 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4246529158483806, guid: 651a32cc1d273104ea02b2951bbed2fb,
@@ -868,6 +868,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abe624eec593d774c90daac9484f68e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Drawing: 0
+  RDCube: {fileID: 1832922257}
 --- !u!1 &977266876
 GameObject:
   m_ObjectHideFlags: 0
@@ -1613,7 +1615,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BrushMaterial: {fileID: 2100000, guid: 1b477d4ec22c489418773c4bf28500a7, type: 2}
   IterationMaterial: {fileID: 2100000, guid: 31836c0367c1b3644a791b61ae46e364, type: 2}
-  BrushTransform: {fileID: 964209022}
   RenderTextureResolution: 256
   NumIterationsPerFrame: 6
 --- !u!114 &1832922258
@@ -1760,7 +1761,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Enable Simulation
+  m_Text: Simulation (Space)
 --- !u!222 &2089517094
 CanvasRenderer:
   m_ObjectHideFlags: 0

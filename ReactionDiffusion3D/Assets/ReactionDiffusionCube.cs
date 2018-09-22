@@ -1,6 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -9,7 +7,6 @@ public class ReactionDiffusionCube : MonoBehaviour
 {
     public Material BrushMaterial;
     public Material IterationMaterial;
-    public Transform BrushTransform;
 
     [Range(16, 512)]
     public int RenderTextureResolution = 256;
@@ -32,6 +29,8 @@ public class ReactionDiffusionCube : MonoBehaviour
         else
             Camera.main.RemoveCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
     }
+
+    public void DrawBrush(Vector3 position) => StartCoroutine(DrawBrushCoroutine(position));
 
     private void OnValidate()
     {
@@ -83,11 +82,11 @@ public class ReactionDiffusionCube : MonoBehaviour
             cmdBuffer.DrawProcedural(Matrix4x4.identity, material, 0, MeshTopology.Triangles, 3, 1, materialPerSliceProperties[(volumeIndex + 1) % 2, slice]);
         }
     }
-
-    private IEnumerator DrawBrush()
+   
+    private IEnumerator DrawBrushCoroutine(Vector3 position)
     {
         float uniformScale = transform.lossyScale.x;
-        var brushPosition = BrushTransform.position / uniformScale + new Vector3(0.5f, 0.5f, 0.5f);
+        var brushPosition = position / uniformScale + new Vector3(0.5f, 0.5f, 0.5f);
 
         BrushMaterial.SetVector("_BrushPositionSize", new Vector4(brushPosition.x, brushPosition.y, brushPosition.z, 0.1f));
         Camera.main.AddCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
@@ -139,9 +138,6 @@ public class ReactionDiffusionCube : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKey(KeyCode.Space))
-            StartCoroutine(DrawBrush());
-
         // Set texture every frame so we get don't loose it if the shader reloads.
         // Note: For some reason we loose our simulation state if we reload while the simulation is active. Not sure why and can't find a callback for shader reload.
         GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
