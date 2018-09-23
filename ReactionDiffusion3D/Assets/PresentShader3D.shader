@@ -86,27 +86,27 @@
 				return pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f;
 			}
 
-			void ComputeRay(v2f In, out float3 pos, out float3 dir, out float3 scaledDir, out float rayLength)
+			void ComputeRay(v2f In, out float3 pos, out float3 dir, out float rayLength)
 			{
+				// Generate camera ray and place in volume.
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
 				dir = normalize(In.volumePos - cameraPosVolume);
-				scaledDir = dir * _VolumeMarchStepSize; // This is what we mean here by "scaled"
-
 				const float3 cubeExtent = float3(0.5f, 0.5f, 0.5f);
 				pos = cameraPosVolume + cubeExtent;
-				float2 boxIntersection = BoxIntersection(cameraPosVolume, scaledDir, cubeExtent);
-				if (IsOutsideUnitCube(pos))
-				{
-					pos += boxIntersection.x * scaledDir;
-					rayLength = boxIntersection.y - boxIntersection.x;
-				}
-				else
-					rayLength = boxIntersection.y;
 
-				// Random offset
-				float offset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x + 0.1f;
-				rayLength -= offset;
-				pos += scaledDir * offset;
+				// Determine cut with box so we can shorten the ray.
+				float2 boxIntersection = BoxIntersection(cameraPosVolume, dir, cubeExtent);
+
+				// Add a random ray offset.
+				float randomOffset = (tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x + 0.1f) * _VolumeMarchStepSize;
+				float rayStartOffset = randomOffset;
+				rayLength = boxIntersection.y - randomOffset; // Maximal length to far box hit.
+				if (IsOutsideUnitCube(pos)) // If outside, shorten ray to start of cube.
+				{
+					rayStartOffset += boxIntersection.x;
+					rayLength -= boxIntersection.x; 
+				}
+				pos += dir * rayStartOffset;
 			}
 
 			float EvaluateHenyeyGreensteinPhaseFunction(float g, float3 toLightNorm, float3 evalDirNorm)
@@ -117,16 +117,16 @@
 
 			float4 frag(v2f In) : COLOR
 			{
-				float3 pos, scaledDir, dir;
+				float3 pos, dir;
 				float maxRayLength;
-				ComputeRay(In, pos, dir, scaledDir, maxRayLength);
+				ComputeRay(In, pos, dir, maxRayLength);
 
 				float hgPhase = EvaluateHenyeyGreensteinPhaseFunction(_ScatteringAnisotropy, dir, _WorldSpaceLightPos0.xyz);
 				float4 accumScatteringTransmittance = float4(0.0f, 0.0f, 0.0f, 1.0f);
-				const int maxNumSteps = min(128, (int)maxRayLength);
+				const int maxNumSteps = min(128, (int)(maxRayLength / _VolumeMarchStepSize));
 				for (int i = 0; i < maxNumSteps && accumScatteringTransmittance.a > 0.01; ++i)
 				{
-					pos += scaledDir;
+					pos += dir * _VolumeMarchStepSize;
 					float density = SampleVolumeDensity(pos);
 
 					// Henyey Greenstein phase function
@@ -146,7 +146,7 @@
 					accumScatteringTransmittance.a *= sampleTransmittance;
 				}
 
-				return accumScatteringTransmittance;
+				return float4(1.0f, 0.0f, 1.0f, 0.0f);
 			}
 			ENDCG
 		}
