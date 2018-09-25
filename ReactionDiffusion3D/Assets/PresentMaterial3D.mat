@@ -25,7 +25,7 @@ Material:
     m_Floats:
     - _DensityFactor: 50
     - _ExtinctionFactor: 100
-    - _ScatteringAnisotropy: 0.3
+    - _ScatteringAnisotropy: 0.4
     - _ScatteringFactor: 85
     - _VolumeMarchStepSize: 0.025
     m_Colors: []

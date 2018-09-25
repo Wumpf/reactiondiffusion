@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
 [RequireComponent(typeof(MeshRenderer))]
@@ -7,6 +8,7 @@ public class ReactionDiffusionCube : MonoBehaviour
 {
     public Material BrushMaterial;
     public Material IterationMaterial;
+    private Material PresentMaterial => GetComponent<MeshRenderer>().material;
 
     [Range(16, 512)]
     public int RenderTextureResolution = 256;
@@ -30,7 +32,7 @@ public class ReactionDiffusionCube : MonoBehaviour
             Camera.main.RemoveCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
     }
 
-    public void DrawBrush(Vector3 position) => StartCoroutine(DrawBrushCoroutine(position));
+    public bool BrushEnabled { get; set; } = true;
 
     private void OnValidate()
     {
@@ -83,12 +85,9 @@ public class ReactionDiffusionCube : MonoBehaviour
         }
     }
    
-    private IEnumerator DrawBrushCoroutine(Vector3 position)
+    private IEnumerator DrawBrushCoroutine(Vector4 brushPositionSize)
     {
-        float uniformScale = transform.lossyScale.x;
-        var brushPosition = position / uniformScale + new Vector3(0.5f, 0.5f, 0.5f);
-
-        BrushMaterial.SetVector("_BrushPositionSize", new Vector4(brushPosition.x, brushPosition.y, brushPosition.z, 0.1f));
+        BrushMaterial.SetVector("_BrushPositionSize", brushPositionSize);
         Camera.main.AddCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
         
         yield return new WaitForEndOfFrame();
@@ -138,8 +137,18 @@ public class ReactionDiffusionCube : MonoBehaviour
 
     private void Update()
     {
+        var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Vector3 brushWorldPosition = ray.origin + ray.direction * 3.0f;
+        float uniformScale = transform.lossyScale.x;
+        var brushPosition = brushWorldPosition / uniformScale + new Vector3(0.5f, 0.5f, 0.5f);
+        var brushPositionSize = new Vector4(brushPosition.x, brushPosition.y, brushPosition.z, 0.018f);
+        PresentMaterial.SetVector("_BrushPositionSize", brushPositionSize);
+
+        if (Input.GetMouseButton(0) && !EventSystem.current.IsPointerOverGameObject())
+            StartCoroutine(DrawBrushCoroutine(brushPositionSize));
+
         // Set texture every frame so we get don't loose it if the shader reloads.
         // Note: For some reason we loose our simulation state if we reload while the simulation is active. Not sure why and can't find a callback for shader reload.
-        GetComponent<MeshRenderer>().material.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
+        PresentMaterial.SetTexture("_ReactionDiffusionVolume", renderTexture[0]);
     }
 }

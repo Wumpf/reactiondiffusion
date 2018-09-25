@@ -19,7 +19,7 @@
 	}
 	SubShader
 	{
-		ZWrite Off ZTest Always
+		//ZWrite Off ZTest Always
 		Blend One SrcAlpha // Alpha is extinction, color is premultiplied
 		Cull Front
 
@@ -42,6 +42,8 @@
 			float _VolumeMarchStepSize;
 			float _ScatteringAnisotropy;
 
+			float4 _BrushPositionSize;
+
 			struct v2f
 			{
 				float4 vertex : SV_POSITION;
@@ -63,7 +65,7 @@
 
 			// Box intersection by iq
 			// http://www.iquilezles.org/www/articles/boxfunctions/boxfunctions.htm
-			float2 BoxIntersection(float3 ro, float3 rd, float3 boxSize)
+			float2 BoxIntersection(float3 ro, float3 rd, float3 boxSize, out float3 outNormal)
 			{
 				float3 m = 1.0 / rd;
 				float3 n = m * ro;
@@ -77,36 +79,60 @@
 
 				if (tN > tF || tF < 0.0f) return float2(-1.0f, -1.0f); // no intersection
 
-				//outNormal = -sign(rdd)*step(t1.yzx, t1.xyz)*step(t1.zxy, t1.xyz);
+				outNormal = -sign(rd)*step(t1.yzx, t1.xyz)*step(t1.zxy, t1.xyz);
 				return float2(tN, tF);
 			}
+			// Sphere intersection by iq
+			// http://www.iquilezles.org/www/articles/spherefunctions/spherefunctions.htm
+			bool SphereIntersect(float3 ro, float3 rd, float4 sph, out float nearHit, out float farHit)
+			{
+				float3 oc = ro - sph.xyz;
+				float b = dot(oc, rd);
+				float c = dot(oc, oc) - sph.w*sph.w;
+				float h = b * b - c;
+				if (h < 0.0f)
+					return false;
+				h = sqrt(h);
+				nearHit = -b - h;
+				farHit = -b + h;
+				return true;
+			}
+
 
 			bool IsOutsideUnitCube(float3 pos)
 			{
 				return pos.x < 0.0f || pos.x > 1.0f || pos.y < 0.0f || pos.y > 1.0f || pos.z < 0.0f || pos.z > 1.0f;
 			}
 
-			void ComputeRay(v2f In, out float3 pos, out float3 dir, out float rayLength)
+			void ComputeRay(v2f In, out float3 pos, out float3 dir, out float rayLength, out float3 outSurfaceNormal, out bool sphereHit)
 			{
 				// Generate camera ray and place in volume.
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
 				dir = normalize(In.volumePos - cameraPosVolume);
-				const float3 cubeExtent = float3(0.5f, 0.5f, 0.5f);
+				const float3 cubeExtent = float3(0.501f, 0.501f, 0.501f);
 				pos = cameraPosVolume + cubeExtent;
 
 				// Determine cut with box so we can shorten the ray.
-				float2 boxIntersection = BoxIntersection(cameraPosVolume, dir, cubeExtent);
+				float2 boxIntersection = BoxIntersection(cameraPosVolume, dir, cubeExtent, outSurfaceNormal);
+				rayLength = boxIntersection.y; // Maximal length to far box hit.
 
-				// Add a random ray offset.
-				float randomOffset = (tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x + 0.1f) * _VolumeMarchStepSize;
-				float rayStartOffset = randomOffset;
-				rayLength = boxIntersection.y - randomOffset; // Maximal length to far box hit.
-				if (IsOutsideUnitCube(pos)) // If outside, shorten ray to start of cube.
+				// Check sphere before we shorten the start position.
+				float brushSphereNearHit, brushSphereFarHit;
+				sphereHit = SphereIntersect(pos, dir, _BrushPositionSize, brushSphereNearHit, brushSphereFarHit);
+				sphereHit = sphereHit && brushSphereFarHit > boxIntersection.x;
+				if (sphereHit)
 				{
-					rayStartOffset += boxIntersection.x;
-					rayLength -= boxIntersection.x; 
+					if (brushSphereNearHit > boxIntersection.x)
+						outSurfaceNormal = normalize(pos + dir * brushSphereNearHit - _BrushPositionSize.xyz);
+					rayLength = min(brushSphereNearHit, rayLength);
 				}
-				pos += dir * rayStartOffset;
+
+				// If outside, shorten ray to start at the cube.
+				if (IsOutsideUnitCube(pos))
+				{
+					pos += dir * boxIntersection.x;
+					rayLength -= boxIntersection.x;
+				}
 			}
 
 			float EvaluateHenyeyGreensteinPhaseFunction(float g, float3 toLightNorm, float3 evalDirNorm)
@@ -119,15 +145,22 @@
 			{
 				float3 pos, dir;
 				float maxRayLength;
-				ComputeRay(In, pos, dir, maxRayLength);
+				float3 surfaceNormal;
+				bool sphereHit;
+				ComputeRay(In, pos, dir, maxRayLength, surfaceNormal, sphereHit);
 
-				float hgPhase = EvaluateHenyeyGreensteinPhaseFunction(_ScatteringAnisotropy, dir, _WorldSpaceLightPos0.xyz);
+				// Jitter sampling pos!
+				float randomOffset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x * _VolumeMarchStepSize - _VolumeMarchStepSize * 0.5f;
+				float3 samplePos = pos + dir * randomOffset;
+				const int maxNumSteps = min(128, (int)((maxRayLength - randomOffset) / _VolumeMarchStepSize));
+				// Since light direction is constant, we need to evaluate the scatter function only once.
+				float hgPhase = EvaluateHenyeyGreensteinPhaseFunction(_ScatteringAnisotropy, _WorldSpaceLightPos0.xyz, -dir);
 				float4 accumScatteringTransmittance = float4(0.0f, 0.0f, 0.0f, 1.0f);
-				const int maxNumSteps = min(128, (int)(maxRayLength / _VolumeMarchStepSize));
+
 				for (int i = 0; i < maxNumSteps && accumScatteringTransmittance.a > 0.01; ++i)
 				{
-					pos += dir * _VolumeMarchStepSize;
-					float density = SampleVolumeDensity(pos);
+					samplePos += dir * _VolumeMarchStepSize;
+					float density = SampleVolumeDensity(samplePos);
 
 					// Henyey Greenstein phase function
 
@@ -146,7 +179,13 @@
 					accumScatteringTransmittance.a *= sampleTransmittance;
 				}
 
-				return float4(1.0f, 0.0f, 1.0f, 0.0f);
+				if (sphereHit)
+				{
+					float sphereLighting = saturate(dot(surfaceNormal, _WorldSpaceLightPos0.xyz)) + 0.2f;
+					return float4(sphereLighting.xxx * accumScatteringTransmittance.a + accumScatteringTransmittance.xyz, 0.0f);
+				}
+				else
+					return accumScatteringTransmittance;
 			}
 			ENDCG
 		}
