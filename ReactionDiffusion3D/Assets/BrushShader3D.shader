@@ -16,19 +16,18 @@
 			sampler2D _NoiseTexture;
 			float4 _NoiseTexture_TexelSize;
 			float4 _BrushPositionSize;
+			float _BrushIntensity;
 
 
 			float4 frag(v2f_volumeSlice In) : COLOR
 			{
-				float _BrushIntensity = 100.0f;
-
 				float3 toBrushCenter = _BrushPositionSize.xyz - In.texcoord;
 				float brushDist = length(toBrushCenter);
 				clip(_BrushPositionSize.w - brushDist);
-				float brushIntensity = 1.0f - brushDist / _BrushPositionSize.w;
-				brushIntensity *= brushIntensity;
+				float brushFade = 1.0f - brushDist / _BrushPositionSize.w;
+				brushFade *= brushFade;
 
-				return float4(0.0, brushIntensity * unity_DeltaTime.x * _BrushIntensity, 0.0, 1.0);
+				return float4(0.0, brushFade * unity_DeltaTime.x * _BrushIntensity, 0.0, 1.0); // todo don't allow negative values
 			}
 			ENDCG
 		}
