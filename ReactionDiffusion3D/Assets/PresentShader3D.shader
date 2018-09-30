@@ -44,6 +44,10 @@
 
 			float4 _BrushPositionSize;
 
+			static const float3 cubeExtent = float3(0.501f, 0.501f, 0.501f);
+			static const int maxNumRayMarchSteps = 128;
+			static const float scatterAmbient = 0.08f;
+
 			struct v2f
 			{
 				float4 vertex : SV_POSITION;
@@ -109,7 +113,6 @@
 				// Generate camera ray and place in volume.
 				float3 cameraPosVolume = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1.0f)).xyz;
 				dir = normalize(In.volumePos - cameraPosVolume);
-				const float3 cubeExtent = float3(0.501f, 0.501f, 0.501f);
 				pos = cameraPosVolume + cubeExtent;
 
 				// Determine cut with box so we can shorten the ray.
@@ -134,6 +137,19 @@
 					rayLength -= boxIntersection.x;
 				}
 			}
+			
+			void ComputeShadowRay(float3 pos, float3 dir, out float rayLength, out bool sphereHit)
+			{
+				float3 outSurfaceNormal;
+				float2 boxIntersection = BoxIntersection(pos - cubeExtent, dir, cubeExtent, outSurfaceNormal);
+				rayLength = boxIntersection.y; // Maximal length to far box hit.
+
+				float brushSphereNearHit, brushSphereFarHit;
+				sphereHit = SphereIntersect(pos, dir, _BrushPositionSize, brushSphereNearHit, brushSphereFarHit);
+				sphereHit = sphereHit && brushSphereNearHit > 0.0f && brushSphereFarHit > boxIntersection.x;
+				if (sphereHit)
+					rayLength = min(brushSphereNearHit, rayLength);
+			}
 
 			float EvaluateHenyeyGreensteinPhaseFunction(float g, float3 toLightNorm, float3 evalDirNorm)
 			{
@@ -141,18 +157,43 @@
 				return (1.0f - gSq) * pow(1.0f + gSq - 2.0f * g * dot(toLightNorm, evalDirNorm), -3.0f / 2.0f) * 0.25; // dropped 1/pi factor
 			}
 
+			float ComputeShadowRay(float3 samplePos)
+			{
+				float3 dir = _WorldSpaceLightPos0.xyz;
+
+				float shadowRayLength;
+				bool shadowRaySphereHit;
+				ComputeShadowRay(samplePos, dir, shadowRayLength, shadowRaySphereHit);
+				if (shadowRaySphereHit)
+					return scatterAmbient;
+
+				float transmittance = 1.0f;
+
+				const int maxNumSteps = min(maxNumRayMarchSteps, (int)(shadowRayLength / _VolumeMarchStepSize));
+				for (int i = 0; i < maxNumSteps && transmittance > 0.01; ++i)
+				{
+					samplePos += dir * _VolumeMarchStepSize;
+					float density = SampleVolumeDensity(samplePos);
+					float extinctionCoefficient = density * _ExtinctionFactor;
+					float sampleTransmittance = exp(-extinctionCoefficient * _VolumeMarchStepSize);
+					transmittance *= sampleTransmittance;
+				}
+
+				return max(scatterAmbient, transmittance);
+			}
+
 			float4 frag(v2f In) : COLOR
 			{
-				float3 pos, dir;
+				float3 cameraRayStartPos, dir;
 				float maxRayLength;
 				float3 surfaceNormal;
 				bool sphereHit;
-				ComputeRay(In, pos, dir, maxRayLength, surfaceNormal, sphereHit);
+				ComputeRay(In, cameraRayStartPos, dir, maxRayLength, surfaceNormal, sphereHit);
 
 				// Jitter sampling pos!
 				float randomOffset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x * _VolumeMarchStepSize - _VolumeMarchStepSize * 0.5f;
-				float3 samplePos = pos + dir * randomOffset;
-				const int maxNumSteps = min(128, (int)((maxRayLength - randomOffset) / _VolumeMarchStepSize));
+				float3 samplePos = cameraRayStartPos + dir * randomOffset;
+				const int maxNumSteps = min(maxNumRayMarchSteps, (int)((maxRayLength - randomOffset) / _VolumeMarchStepSize));
 				// Since light direction is constant, we need to evaluate the scatter function only once.
 				float hgPhase = EvaluateHenyeyGreensteinPhaseFunction(_ScatteringAnisotropy, _WorldSpaceLightPos0.xyz, -dir);
 				float4 accumScatteringTransmittance = float4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -162,9 +203,8 @@
 					samplePos += dir * _VolumeMarchStepSize;
 					float density = SampleVolumeDensity(samplePos);
 
-					// Henyey Greenstein phase function
-
-					float sampleScattering = _ScatteringFactor * density * _VolumeMarchStepSize * hgPhase;
+					float incomingRadiance = ComputeShadowRay(samplePos);
+					float sampleScattering = incomingRadiance *_ScatteringFactor * density * _VolumeMarchStepSize * hgPhase;
 
 					// We walk from the camera through the volume.
 					// The further we walk, the less relevant get our samples since less right reaches the viewer / more is absorbed on the way.
@@ -181,7 +221,9 @@
 
 				if (sphereHit)
 				{
-					float sphereLighting = saturate(dot(surfaceNormal, _WorldSpaceLightPos0.xyz)) + 0.2f;
+					float sphereLighting = dot(surfaceNormal, _WorldSpaceLightPos0.xyz);
+					sphereLighting *= ComputeShadowRay(cameraRayStartPos + dir * maxRayLength);
+					sphereLighting = saturate(sphereLighting) + scatterAmbient;
 					return float4(sphereLighting.xxx * accumScatteringTransmittance.a + accumScatteringTransmittance.xyz, 0.0f);
 				}
 				else
