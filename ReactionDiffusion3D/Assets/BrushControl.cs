@@ -14,6 +14,8 @@ public class BrushControl : MonoBehaviour
     public float BrushRadius = 0.018f;
 
     public float BrushIntensity = 10.0f;
+    
+    public bool BrushEnabled { get; set; } = true;
 
     private void Update()
     {
@@ -23,7 +25,7 @@ public class BrushControl : MonoBehaviour
         Vector3 brushWorldPosition = ray.origin + ray.direction * 3.0f;
 
         float intensity = 0.0f;
-        if (!EventSystem.current.IsPointerOverGameObject())
+        if (!EventSystem.current.IsPointerOverGameObject() && BrushEnabled)
         {
             if (Input.GetMouseButton(0))
                 intensity = BrushIntensity;
@@ -31,6 +33,6 @@ public class BrushControl : MonoBehaviour
                 intensity = -BrushIntensity;
         }
 
-        GetComponent<ReactionDiffusionCube>().SetBrushProperties(brushWorldPosition, BrushRadius, intensity);
+        GetComponent<ReactionDiffusionCube>().SetBrushProperties(brushWorldPosition, BrushEnabled ? BrushRadius : 0.0f, intensity);
     }
 }

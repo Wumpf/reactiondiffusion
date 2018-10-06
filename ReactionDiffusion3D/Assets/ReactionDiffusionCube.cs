@@ -33,8 +33,6 @@ public class ReactionDiffusionCube : MonoBehaviour
             Camera.main.RemoveCommandBuffer(volumeUpdateEvent, iterationCommandBuffer);
     }
 
-    public bool BrushEnabled { get; set; } = true;
-
     private void OnValidate()
     {
         if (NumIterationsPerFrame % 2 != 0)
