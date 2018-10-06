@@ -24,7 +24,7 @@
 				float brushDist = length(toBrushCenter);
 				clip(_BrushPositionSize.w - brushDist);
 				float brushFade = saturate(1.0f - brushDist / _BrushPositionSize.w);
-				brushFade *= brushFade;
+				brushFade = pow(brushFade, 0.1f);
 
 				float2 current = tex3D(_MainTex, In.texcoord).xy;
 				float brush = brushFade * unity_DeltaTime.x * _BrushIntensity;

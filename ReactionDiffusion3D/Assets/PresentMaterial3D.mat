@@ -27,8 +27,8 @@ Material:
     - _DensityFactor: 50
     - _ExtinctionFactor: 100
     - _ScatterAmbient: 0.08
-    - _ScatteringAnisotropy: 0.4
-    - _ScatteringFactor: 85
+    - _ScatteringAnisotropy: 0.65
+    - _ScatteringFactor: 70
     - _VolumeMarchStepSize: 0.025
-    - _VolumeMarchStepSize_ShadowRay: 0.05
+    - _VolumeMarchStepSize_ShadowRay: 0.035
     m_Colors: []

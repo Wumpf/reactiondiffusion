@@ -55,12 +55,12 @@ public class ReactionDiffusionCube : MonoBehaviour
                 dimension = TextureDimension.Tex3D,
                 msaaSamples = 1,
             });
-            renderTexture[i].Create();
             renderTexture[i].name = "Reaction Diffusion Volume " + i;
             renderTexture[i].wrapModeU = TextureWrapMode.Repeat;
             renderTexture[i].wrapModeV = TextureWrapMode.Repeat;
             renderTexture[i].wrapModeW = TextureWrapMode.Repeat;
             renderTexture[i].filterMode = FilterMode.Bilinear;
+            renderTexture[i].Create();
         }
    
         materialPerSliceProperties = new MaterialPropertyBlock[2, RenderTextureResolution];
