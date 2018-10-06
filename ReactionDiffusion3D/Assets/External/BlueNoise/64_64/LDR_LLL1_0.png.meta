@@ -1,9 +1,9 @@
 fileFormatVersion: 2
-guid: f7d4c7a37ac85d24bbf423ad08efde24
+guid: c7402720a5716bf449ff465f1941d5f0
 TextureImporter:
   fileIDToRecycleName: {}
   externalObjects: {}
-  serializedVersion: 6
+  serializedVersion: 7
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -20,7 +20,7 @@ TextureImporter:
     externalNormalMap: 0
     heightScale: 0.25
     normalMapFilter: 0
-  isReadable: 0
+  isReadable: 1
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
   grayScaleToAlpha: 0
@@ -31,12 +31,12 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: -1
+    filterMode: 0
     aniso: -1
     mipBias: -100
-    wrapU: 0
-    wrapV: 0
-    wrapW: 0
+    wrapU: -1
+    wrapV: -1
+    wrapW: -1
   nPOTScale: 1
   lightmap: 0
   compressionQuality: 50
@@ -48,10 +48,10 @@ TextureImporter:
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
-  alphaUsage: 0
+  alphaUsage: 2
   alphaIsTransparency: 0
   spriteTessellationDetail: -1
-  textureType: 0
+  textureType: 10
   textureShape: 1
   singleChannelComponent: 0
   maxTextureSizeSet: 0
@@ -60,9 +60,9 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 2
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 64
     resizeAlgorithm: 0
-    textureFormat: -1
+    textureFormat: 1
     textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
@@ -71,9 +71,9 @@ TextureImporter:
     androidETC2FallbackOverride: 0
   - serializedVersion: 2
     buildTarget: Standalone
-    maxTextureSize: 2048
+    maxTextureSize: 64
     resizeAlgorithm: 0
-    textureFormat: -1
+    textureFormat: 1
     textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
@@ -92,6 +92,8 @@ TextureImporter:
     edges: []
     weights: []
   spritePackingTag: 
+  pSDRemoveMatte: 0
+  pSDShowRemoveMatteOption: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 

@@ -3,7 +3,7 @@
 	Properties
 	{
 		//_ReactionDiffusionVolume ("Volume", 3D) = "white" {}
-		_NoiseTexture ("Noise", 2D) = "white" {}
+		_NoiseTexture ("Noise", 3D) = "white" {}
 
 		// Linear attenuation coefficient. (for density 1)
 		// Fraction of light scattered & absorbed / fraction that passes through.
@@ -14,8 +14,10 @@
 
 		// Higher value mean more directed scattering.
 		_ScatteringAnisotropy ("ScatteringAnisotropy", Range(0.0, 1.0)) = 0.3
+		_ScatterAmbient("ScatterAmbient", Float) = 0.08
 
 		_VolumeMarchStepSize ("VolumeMarchStepSize", Float) = 0.025
+		_VolumeMarchStepSize_ShadowRay ("VolumeMarchStepSize_ShadowRay", Float) = 0.05
 	}
 	SubShader
 	{
@@ -34,19 +36,23 @@
 			
 			sampler3D _ReactionDiffusionVolume;
 			float4 _ReactionDiffusionVolume_TexelSize;
-			sampler2D _NoiseTexture;
+			sampler3D _NoiseTexture;
 			float4 _NoiseTexture_TexelSize;
 
 			float _ExtinctionFactor;
 			float _ScatteringFactor;
-			float _VolumeMarchStepSize;
+
 			float _ScatteringAnisotropy;
+			float _ScatterAmbient;
+
+			float _VolumeMarchStepSize;
+			float _VolumeMarchStepSize_ShadowRay;
 
 			float4 _BrushPositionSize;
 
 			static const float3 cubeExtent = float3(0.501f, 0.501f, 0.501f);
 			static const int maxNumRayMarchSteps = 128;
-			static const float scatterAmbient = 0.08f;
+			static const int maxNumRayMarchSteps_Shadow = 32;
 
 			struct v2f
 			{
@@ -157,7 +163,7 @@
 				return (1.0f - gSq) * pow(1.0f + gSq - 2.0f * g * dot(toLightNorm, evalDirNorm), -3.0f / 2.0f) * 0.25; // dropped 1/pi factor
 			}
 
-			float ComputeShadowRay(float3 samplePos)
+			float TraceShadowRay(float3 samplePos, float2 noisePos, int sampleIndex)
 			{
 				float3 dir = _WorldSpaceLightPos0.xyz;
 
@@ -165,21 +171,25 @@
 				bool shadowRaySphereHit;
 				ComputeShadowRay(samplePos, dir, shadowRayLength, shadowRaySphereHit);
 				if (shadowRaySphereHit)
-					return scatterAmbient;
+					return _ScatterAmbient;
 
 				float transmittance = 1.0f;
+				const int maxNumSteps = min(maxNumRayMarchSteps_Shadow, (int)(shadowRayLength / _VolumeMarchStepSize_ShadowRay));
+				float3 step = dir * _VolumeMarchStepSize_ShadowRay;
 
-				const int maxNumSteps = min(maxNumRayMarchSteps, (int)(shadowRayLength / _VolumeMarchStepSize));
+                float noise01 = tex3Dlod(_NoiseTexture, float4(noisePos, sampleIndex * _NoiseTexture_TexelSize.x, 0.0f)).a;
+				samplePos += step * noise01;
+
 				for (int i = 0; i < maxNumSteps && transmittance > 0.01; ++i)
 				{
-					samplePos += dir * _VolumeMarchStepSize;
+					samplePos += step;
 					float density = SampleVolumeDensity(samplePos);
 					float extinctionCoefficient = density * _ExtinctionFactor;
 					float sampleTransmittance = exp(-extinctionCoefficient * _VolumeMarchStepSize);
 					transmittance *= sampleTransmittance;
 				}
 
-				return max(scatterAmbient, transmittance);
+				return max(_ScatterAmbient, transmittance);
 			}
 
 			float4 frag(v2f In) : COLOR
@@ -191,19 +201,22 @@
 				ComputeRay(In, cameraRayStartPos, dir, maxRayLength, surfaceNormal, sphereHit);
 
 				// Jitter sampling pos!
-				float randomOffset = tex2D(_NoiseTexture, In.vertex.xy * _NoiseTexture_TexelSize.xy).x * _VolumeMarchStepSize - _VolumeMarchStepSize * 0.5f;
+				float2 noisePos = In.vertex.xy * _NoiseTexture_TexelSize.x;
+				float noise01 = tex3Dlod(_NoiseTexture, float4(In.vertex.xy * _NoiseTexture_TexelSize.x, 0.0f, 0.0f)).a;
+				float randomOffset = noise01 * _VolumeMarchStepSize - _VolumeMarchStepSize * 0.5f;
 				float3 samplePos = cameraRayStartPos + dir * randomOffset;
 				const int maxNumSteps = min(maxNumRayMarchSteps, (int)((maxRayLength - randomOffset) / _VolumeMarchStepSize));
 				// Since light direction is constant, we need to evaluate the scatter function only once.
 				float hgPhase = EvaluateHenyeyGreensteinPhaseFunction(_ScatteringAnisotropy, _WorldSpaceLightPos0.xyz, -dir);
 				float4 accumScatteringTransmittance = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
+				float3 step = dir * _VolumeMarchStepSize;
 				for (int i = 0; i < maxNumSteps && accumScatteringTransmittance.a > 0.01; ++i)
 				{
-					samplePos += dir * _VolumeMarchStepSize;
+					samplePos += step;
 					float density = SampleVolumeDensity(samplePos);
 
-					float incomingRadiance = ComputeShadowRay(samplePos);
+					float incomingRadiance = TraceShadowRay(samplePos, noisePos, i);
 					float sampleScattering = incomingRadiance *_ScatteringFactor * density * _VolumeMarchStepSize * hgPhase;
 
 					// We walk from the camera through the volume.
@@ -222,8 +235,8 @@
 				if (sphereHit)
 				{
 					float sphereLighting = dot(surfaceNormal, _WorldSpaceLightPos0.xyz);
-					sphereLighting *= ComputeShadowRay(cameraRayStartPos + dir * maxRayLength);
-					sphereLighting = saturate(sphereLighting) + scatterAmbient;
+					sphereLighting *= TraceShadowRay(cameraRayStartPos + dir * maxRayLength, noisePos, i);
+					sphereLighting = saturate(sphereLighting) + _ScatterAmbient;
 					return float4(sphereLighting.xxx * accumScatteringTransmittance.a + accumScatteringTransmittance.xyz, 0.0f);
 				}
 				else

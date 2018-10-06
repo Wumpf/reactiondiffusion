@@ -5,7 +5,8 @@ Material:
   serializedVersion: 6
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_Name: PresentMaterial3D
   m_Shader: {fileID: 4800000, guid: 07d1b4a3af47d934085cb04ab6394e9a, type: 3}
   m_ShaderKeywords: 
@@ -19,13 +20,15 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _NoiseTexture:
-        m_Texture: {fileID: 2800000, guid: f7d4c7a37ac85d24bbf423ad08efde24, type: 3}
+        m_Texture: {fileID: 11700000, guid: 4199a70d3a502ad48a5af258cd572a5f, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _DensityFactor: 50
     - _ExtinctionFactor: 100
+    - _ScatterAmbient: 0.08
     - _ScatteringAnisotropy: 0.4
     - _ScatteringFactor: 85
     - _VolumeMarchStepSize: 0.025
+    - _VolumeMarchStepSize_ShadowRay: 0.05
     m_Colors: []
