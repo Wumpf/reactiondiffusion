@@ -6,7 +6,7 @@
 		_DiffusionRate ("DiffusionRate", Vector) = (1.0, 0.5, 0.0, 0.0)
 		_KillRate ("KillRate", Float) = 0.062
 		_FeedRate ("FeedRate", Float) = 0.0545
-		_Speed ("Speed", Float) = 100
+		_Speed ("Speed", Float) = 10
 	}
 	SubShader
 	{
@@ -60,7 +60,7 @@
 
 			float4 frag(v2f_volumeSlice In) : COLOR
 			{
-				float2 current = max(float2(0.0f, 0.0f), tex3D(_MainTex, In.texcoord).xy);
+				float2 current = tex3D(_MainTex, In.texcoord).xy;
 
 				// Compute diffusion.
 				float2 laplacian = computeLaplacian(In.texcoord, current);
@@ -74,6 +74,7 @@
 
 				// Apply using simple forward Euler.
 				float2 newValues = current + (diffusion + float2(reactionU, reactionV)) * (_Speed * unity_DeltaTime.x / _NumIterationsPerFrame);
+				newValues = max(float2(0.0f, 0.0f), newValues);
 
 				return float4(newValues, 0.0, 1.0);
 			}

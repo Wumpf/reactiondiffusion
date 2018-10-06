@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
+using System.Linq;
 
 [RequireComponent(typeof(MeshRenderer))]
 public class ReactionDiffusionCube : MonoBehaviour
@@ -16,11 +17,6 @@ public class ReactionDiffusionCube : MonoBehaviour
     // Must be even! Todo: Enforce, Expose
     [Range(2, 100)]
     public int NumIterationsPerFrame = 6;
-
-    [Range(0.001f, 0.5f)]
-    public float BrushSize = 0.018f;
-
-    public float BrushIntensity = 1.0f;
 
     private readonly RenderTexture[] renderTexture = new RenderTexture[] {null, null};
     private MaterialPropertyBlock[,] materialPerSliceProperties;
@@ -100,7 +96,8 @@ public class ReactionDiffusionCube : MonoBehaviour
         {
             BrushMaterial.SetVector("_BrushPositionSize", brushPositionSize);
             BrushMaterial.SetFloat("_BrushIntensity", activeIntensity);
-            Camera.main.AddCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
+            if (Camera.main.GetCommandBuffers(volumeUpdateEvent).All(x => x.name != brushCommandBuffer.name))
+                Camera.main.AddCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
         }
         else
             Camera.main.RemoveCommandBuffer(volumeUpdateEvent, brushCommandBuffer);
@@ -142,6 +139,7 @@ public class ReactionDiffusionCube : MonoBehaviour
         // Setup brush.
         brushCommandBuffer = new CommandBuffer();
         brushCommandBuffer.name = "Brush";
+        BrushMaterial.SetTexture("_MainTex", renderTexture[1]);
         AddVolumeUpdateToCommandBuffer(brushCommandBuffer, 0, BrushMaterial);
 
         return InitSimulation();

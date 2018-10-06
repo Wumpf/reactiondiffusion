@@ -3,7 +3,6 @@
 	SubShader
 	{
 		Cull Off ZWrite Off ZTest Always
-		Blend One One
 
 		Pass
 		{
@@ -13,7 +12,7 @@
 			#pragma vertex vert_volumeSlice
 			#pragma fragment frag
 
-			sampler2D _NoiseTexture;
+			sampler3D _MainTex;
 			float4 _NoiseTexture_TexelSize;
 			float4 _BrushPositionSize;
 			float _BrushIntensity;
@@ -24,10 +23,12 @@
 				float3 toBrushCenter = _BrushPositionSize.xyz - In.texcoord;
 				float brushDist = length(toBrushCenter);
 				clip(_BrushPositionSize.w - brushDist);
-				float brushFade = 1.0f - brushDist / _BrushPositionSize.w;
+				float brushFade = saturate(1.0f - brushDist / _BrushPositionSize.w);
 				brushFade *= brushFade;
 
-				return float4(0.0, brushFade * unity_DeltaTime.x * _BrushIntensity, 0.0, 1.0); // todo don't allow negative values
+				float2 current = tex3D(_MainTex, In.texcoord).xy;
+				float brush = brushFade * unity_DeltaTime.x * _BrushIntensity;
+				return float4(current.x, clamp(current.y + brush, 0.0f, 5.0f), 0.0f, 0.0f);
 			}
 			ENDCG
 		}

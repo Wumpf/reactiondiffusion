@@ -13,7 +13,7 @@ public class BrushControl : MonoBehaviour
     [Range(BrushRadiusMin, BrushRadiusMax)]
     public float BrushRadius = 0.018f;
 
-    public float BrushIntensity = 100.0f;
+    public float BrushIntensity = 10.0f;
 
     private void Update()
     {
